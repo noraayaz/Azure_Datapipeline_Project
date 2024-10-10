@@ -1,0 +1,18 @@
+# Ignore local settings (used for local development)
+local.settings.json
+
+# Optional: Ignore Python virtual environments
+env1/
+
+# Optional: Ignore Python bytecode files
+__pycache__/
+*.pyc
+.python_packages
+# Optional: Ignore VS Code settings if using VS Code
+.vscode/
+python_query.py
+latex.txt
+env.txt
+
+
+# Optional: Ignore any other files specific to local development
