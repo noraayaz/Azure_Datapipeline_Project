@@ -47,7 +47,7 @@ pip install -r requirements.txt
 **Configure Environment Variables Create a .env file and add the following variables:**
 ```
 bash
-AZURE_STORAGE_CONNECTION_STRING="<your_storage_connection_string>"
+AZURE_STORAGE_CONNECTION_STRING="<storage_connection_string>"
 AZURE_QUEUE_NAME="<queue_name>"
 DB_SERVER="<sql_server>"
 DB_USER="<sql_user>"
