@@ -1,90 +1,69 @@
-import os  # For accessing environment variables
-import pymssql  # For connecting to SQL Server
-import matplotlib.pyplot as plt  # For visualizing data
-import logging
-from datetime import datetime
+"""
+This script retrieves data from an Azure SQL Database, processes it, and generates a visual representation (a plot) of the data using the matplotlib library. 
+The data, consisting of temperature, humidity, and timestamp values, is fetched and plotted to visualize the trends over time. 
+The plot is saved as a PNG file on the server (Azure VM), and can be transferred to a local machine for further analysis or reporting purposes.
 
-# Load environment variables for database connection
-DB_SERVER = os.getenv('DB_SERVER')  # Database server (e.g., mydbserver.database.windows.net)
-DB_USER = os.getenv('DB_USER')  # Database user (e.g., adminuser)
-DB_PASSWORD = os.getenv('DB_PASSWORD')  # Database password
-DB_NAME = os.getenv('DB_NAME')  # Database name (e.g., mydatabase1090)
+Key steps:
+1. Retrieve the top 20 most recent records from the SensorData table in Azure SQL Database.
+2. Process the data to extract temperature, humidity, and timestamp values.
+3. Generate a plot using matplotlib, showing the trends of temperature and humidity over time.
+4. Save the plot as a PNG image on the Azure VM at '/home/ubuntu/sensor_data_plot.png'.
+5. The file can be transferred from the Azure VM to a local machine using the 'scp' command.
 
-# Ensure all required environment variables are set
-if not DB_SERVER or not DB_USER or not DB_PASSWORD or not DB_NAME:
-    raise ValueError("Environment variables for database connection (DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME) must be set.")
+Example SCP command for transferring the plot to a local machine:
+scp -i ~/.ssh/id_rsa ubuntu@<VM-IP-Address>:/home/ubuntu/sensor_data_plot.png /<local-path>/
 
-# Function to fetch sensor data from the database
-def fetch_sensor_data():
-    try:
-        # Establish a connection to the Azure SQL Database
-        with pymssql.connect(DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME) as conn:
-            with conn.cursor(as_dict=True) as cursor:
-                # Query to fetch temperature, humidity, and timestamp data from the SensorData table
-                cursor.execute("SELECT Temperature, Humidity, Timestamp FROM SensorData ORDER BY Timestamp DESC")
-                
-                # Fetch all rows from the result
-                rows = cursor.fetchall()
+Note:
+The database connection details (server, database name, user, and password) are now retrieved from environment variables for enhanced security.
+"""
 
-                if rows:
-                    logging.info(f"Fetched {len(rows)} records from the database.")
-                    return rows
-                else:
-                    logging.info("No data found in the database.")
-                    return None
-    except Exception as e:
-        logging.error(f"Error occurred while fetching data from the database: {e}")
-        return None
+import os
+import pyodbc
+import matplotlib.pyplot as plt
 
-# Function to visualize sensor data using matplotlib
-def visualize_data(data):
-    if not data:
-        print("No data available to visualize.")
-        return
+# Retrieve the database connection details from environment variables
+DB_SERVER = os.getenv("DB_SERVER")  # Azure SQL Server address
+DB_NAME = os.getenv("DB_NAME")  # Azure SQL Database name
+DB_USER = os.getenv("DB_USER")  # Azure SQL Database username
+DB_PASSWORD = os.getenv("DB_PASSWORD")  # Azure SQL Database password
 
-    # Prepare lists for plotting
-    temperatures = [row['Temperature'] for row in data]
-    humidity = [row['Humidity'] for row in data]
-    
-    # Since row['Timestamp'] is already a datetime object, we don't need to convert it
-    timestamps = [row['Timestamp'] for row in data]
+# Construct the database connection string using environment variables
+DB_CONNECTION_STRING = (
+    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+    f"Server=tcp:{DB_SERVER},1433;"
+    f"Database={DB_NAME};"
+    f"UID={DB_USER};"
+    f"PWD={DB_PASSWORD};"
+    "Encrypt=yes;"
+    "TrustServerCertificate=no;"
+    "Connection Timeout=30;"
+)
 
-    # Create two subplots: one for temperature and one for humidity
-    plt.figure(figsize=(10, 6))
+# Connect to the database and fetch the top 20 records ordered by Timestamp
+with pyodbc.connect(DB_CONNECTION_STRING) as conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT TOP 20 Temperature, Humidity, Timestamp FROM SensorData ORDER BY Timestamp DESC")
+    rows = cursor.fetchall()
 
-    # Plot temperature data
-    plt.subplot(2, 1, 1)
-    plt.plot(timestamps, temperatures, marker='o', linestyle='-', color='b')
-    plt.title("Temperature Over Time")
-    plt.xlabel("Timestamp")
-    plt.ylabel("Temperature (°C)")
-    plt.grid(True)
+    if rows:
+        # Extract temperature, humidity, and timestamp values from the database records
+        temperatures = [row[0] for row in rows]
+        humidities = [row[1] for row in rows]
+        timestamps = [row[2] for row in rows]
+        
+        # Plot the data using matplotlib
+        plt.figure(figsize=(10, 5))
+        plt.plot(timestamps, temperatures, label='Temperature (°C)', marker='o')
+        plt.plot(timestamps, humidities, label='Humidity (%)', marker='x')
+        plt.xlabel('Timestamp')
+        plt.ylabel('Values')
+        plt.title('Temperature and Humidity Trends')
+        plt.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
 
-    # Plot humidity data
-    plt.subplot(2, 1, 2)
-    plt.plot(timestamps, humidity, marker='o', linestyle='-', color='g')
-    plt.title("Humidity Over Time")
-    plt.xlabel("Timestamp")
-    plt.ylabel("Humidity (%)")
-    plt.grid(True)
-
-    # Automatically adjust layout
-    plt.tight_layout()
-
-    # Show the plots
-    plt.show()
-
-# Main function to fetch and visualize data
-def main():
-    print("Fetching data from the database...")
-    sensor_data = fetch_sensor_data()
-
-    if sensor_data:
-        print("Visualizing data...")
-        visualize_data(sensor_data)
+        # Save the plot as a PNG file on the server (Azure VM)
+        plt.savefig('/home/ubuntu/sensor_data_plot.png')
+        print("Plot saved as sensor_data_plot.png")
     else:
-        print("No data to display.")
-
-# Entry point of the script
-if __name__ == "__main__":
-    main()
+        print("No data found.")
