@@ -35,7 +35,7 @@ The data pipeline consists of the following components:
 
 **Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/azure_datapipeline_project.git
+git clone https://github.com/noraayaz/azure_datapipeline_project.git
 cd azure_datapipeline_project
 ```
 
