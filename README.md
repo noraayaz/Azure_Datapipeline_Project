@@ -80,11 +80,4 @@ Queue to Database: The Azure Function (function_app.py) processes the queued mes
 - Managing environment variables securely for Azure services.
 - Solving data encoding issues while sending data to the Azure Queue.
 - Handling compatibility issues with ODBC drivers and switching to pymssql for database connectivity.
-- For more details on challenges and solutions, refer to the Challenges and Solutions section in the project documentation.
 
-**Future Work**
-
-- Potential improvements for the project include:
-- Implementing advanced data monitoring and alerting systems.
-- Expanding the pipeline to process multiple types of sensor data.
-- ntegrating autoscaling features to handle larger data loads efficiently.
